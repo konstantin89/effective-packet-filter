@@ -5,7 +5,7 @@
 #include <linux/fs.h>
 #include <linux/poll.h>
 
-#include "status.h"
+#include "Status.h"
 
 typedef ssize_t (*ReadCdevCallbackType)(struct file *filp, char __user *buff, size_t count, loff_t *f_pos);
 typedef ssize_t (*WriteCdevCallbackType)(struct file *filp, const char __user *buff, size_t count, loff_t *f_pos);
@@ -29,8 +29,8 @@ struct CharDevice
 {
     struct CharDevicePrivateFields *privateFields;
 
-    STATUS_CODE (*Init)(CharDevice *instance);
-    STATUS_CODE (*Purge)(CharDevice *instance);
+    STATUS_CODE (*Open)(CharDevice *instance);
+    STATUS_CODE (*Close)(CharDevice *instance);
 
 };
 
