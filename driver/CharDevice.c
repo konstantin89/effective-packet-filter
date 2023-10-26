@@ -1,11 +1,15 @@
 #include "CharDevice.h"
 #include "Assert.h"
+#include "Logger.h"
 
+#include <linux/string.h> 
 #include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/kdev_t.h>
 #include <linux/uaccess.h>
+
+#define CHAR_DEVICE_REGION_NAME "filter_device_cdev"
 
 static CharDevice* Allocate(void);
 static void Free(CharDevice *instance);
@@ -20,13 +24,26 @@ struct CharDevicePrivateFields
     struct class *charDevClass;
     struct device *charDevDevice;
     struct file_operations fileOps;
+    char deviceName[MAX_DEVICE_NAME_LEN];
+    bool isOpen;
 };
 
-CharDevice *CharDevice_Create(CharDeviceOps ops, const char *name)
+CharDevice *CharDevice_Create(CharDeviceOps ops, const char *name, struct class *deviceClass)
 {
-    CharDevice *instance = Allocate();
+    CharDevice *instance = NULL;
+
+    ASSERT(NULL != name);
+    ASSERT(NULL != deviceClass);
+
+    instance = Allocate();
     if (NULL == instance)
     {
+        return NULL;
+    }
+
+    if (strlen(name) > (sizeof(instance->privateFields->deviceName)-1))
+    {
+        LOG_ERROR("Char device name is too long: [%s] \n", name);
         return NULL;
     }
 
@@ -36,6 +53,13 @@ CharDevice *CharDevice_Create(CharDeviceOps ops, const char *name)
     instance->privateFields->fileOps.read    = ops.read;
     instance->privateFields->fileOps.poll    = ops.poll;
     instance->privateFields->fileOps.owner   = THIS_MODULE;
+
+    instance->Close = Close;
+    instance->Open = Open;
+    
+    strncpy(instance->privateFields->deviceName, name, sizeof(instance->privateFields->deviceName));
+
+    instance->privateFields->charDevClass = deviceClass;
 
     return instance;
 }
@@ -60,6 +84,8 @@ static CharDevice* Allocate()
         return NULL;
     }
 
+    memset(instance->privateFields, 0, sizeof(struct CharDevicePrivateFields));
+
     return instance;
 }
 
@@ -80,58 +106,55 @@ static STATUS_CODE Open(CharDevice*instance)
     struct CharDevicePrivateFields *privFields = instance->privateFields;
 
     int ret = 0;
-    ret = alloc_chrdev_region(&privFields->deviceNumber, 0, 1, "what_is_this_string");
+    ret = alloc_chrdev_region(&privFields->deviceNumber, 0, 1, CHAR_DEVICE_REGION_NAME);
     if (ret < 0)
     {
         goto error_out;
     }
 
-	cdev_init(&privFields->charDev, &privFields->fileOps);
+    cdev_init(&privFields->charDev, &privFields->fileOps);
     privFields->charDev.owner = THIS_MODULE;
 
-	ret = cdev_add(&privFields->charDev, privFields->deviceNumber, 1);
-	if(ret < 0)
+    ret = cdev_add(&privFields->charDev, privFields->deviceNumber, 1);
+    if(ret < 0)
     {
         goto unreg_chrdev;
-	}
+    }
 
-	privFields->charDevClass = class_create(THIS_MODULE, "what_is_this_class_string");
-	if(IS_ERR(privFields->charDevClass))
+    privFields->charDevDevice = device_create(privFields->charDevClass, NULL, privFields->deviceNumber, NULL, privFields->deviceName);
+    if(IS_ERR(privFields->charDevDevice))
     {
-		goto cdev_del;
-	}
+        goto cdev_del;
+    } 
 
-	privFields->charDevDevice = device_create(privFields->charDevClass, NULL, privFields->deviceNumber, NULL, "what_is_this_device_string");
-	if(IS_ERR(privFields->charDevDevice))
-    {
-		goto class_del;
-	} 
-
+    privFields->isOpen = true;
     return STATUS_CODE_SUCCESS;
 
-class_del:
-	class_destroy(privFields->charDevClass);
 cdev_del:
-	cdev_del(&privFields->charDev);	
+    cdev_del(&privFields->charDev);    
 unreg_chrdev:
-	unregister_chrdev_region(privFields->deviceNumber, 1);
+    unregister_chrdev_region(privFields->deviceNumber, 1);
 error_out:
-	return STATUS_CODE_FAILED;
+    return STATUS_CODE_FAILED;
 }
 
 static STATUS_CODE Close(CharDevice *instance)
 {
     struct CharDevicePrivateFields *privFields = NULL;
 
-    ASSERT (NULL == instance);
-    ASSERT (NULL == instance->privateFields);
+    ASSERT (NULL != instance);
+    ASSERT (NULL != instance->privateFields);
 
     privFields = instance->privateFields;
 
-	device_destroy(privFields->charDevClass, privFields->deviceNumber);
-	class_destroy(privFields->charDevClass);
-	cdev_del(&privFields->charDev);
-	unregister_chrdev_region(privFields->deviceNumber, 1);
+    if (false == privFields->isOpen)
+    {
+        return STATUS_CODE_FAILED;
+    }
+
+    device_destroy(privFields->charDevClass, privFields->deviceNumber);
+    cdev_del(&privFields->charDev);
+    unregister_chrdev_region(privFields->deviceNumber, 1);
 
     return STATUS_CODE_SUCCESS;
 }

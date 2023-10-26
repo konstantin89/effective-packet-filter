@@ -4,8 +4,16 @@
 #include <linux/types.h>
 #include <linux/fs.h>
 #include <linux/poll.h>
+#include <linux/device.h>
 
 #include "Status.h"
+
+/** 
+ * @brief: Create character device under give device class with given character device name.
+ *         The char device with given name will be created under /dev.
+*/
+
+#define MAX_DEVICE_NAME_LEN 64
 
 typedef ssize_t (*ReadCdevCallbackType)(struct file *filp, char __user *buff, size_t count, loff_t *f_pos);
 typedef ssize_t (*WriteCdevCallbackType)(struct file *filp, const char __user *buff, size_t count, loff_t *f_pos);
@@ -34,8 +42,19 @@ struct CharDevice
 
 };
 
-CharDevice *CharDevice_Create(CharDeviceOps ops, const char *name);
+/**
+ * @brief: Create character device
+ * @param: ops - file operations for the character device
+ * @param: name - character device name. Max size of the is MAX_DEVICE_NAME_LEN.
+ * @param: deviceClass - Device class that the character device will be under.
+ * @returns: New character device instance
+*/
+CharDevice *CharDevice_Create(CharDeviceOps ops, const char *name, struct class *deviceClass);
 
+/**
+ * @brief: Destroy character device instance.
+ * @param:  instance
+*/
 void CharDevice_Destroy(CharDevice *instance);
 
 
