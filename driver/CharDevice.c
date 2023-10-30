@@ -1,6 +1,6 @@
 #include "CharDevice.h"
-#include "Assert.h"
-#include "Logger.h"
+#include "utils/Assert.h"
+#include "utils/Logger.h"
 
 #include <linux/string.h> 
 #include <linux/fs.h>

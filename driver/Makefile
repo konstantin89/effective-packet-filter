@@ -1,5 +1,11 @@
 obj-m += filter_module.o
-filter_module-objs := Module.o CharDevice.o Status.o DeviceClassManager.o
+
+UTILS_FILES = utils/Status.o
+HOOKS_FILES = hooks/HooksManager.o
+
+filter_module-objs := Module.o CharDevice.o DeviceClassManager.o $(UTILS_FILES) $(HOOKS_FILES)
+
+EXTRA_CFLAGS += -I$(PWD)
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules

@@ -1,7 +1,7 @@
 #include "DeviceClassManager.h"
 
-#include "Assert.h"
-#include "Logger.h"
+#include "utils/Assert.h"
+#include "utils/Logger.h"
 
 #define DEVICE_CLASS_NAME "traffic_filter_class"
 
