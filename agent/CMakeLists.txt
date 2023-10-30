@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.0)
 
-set(SOURCES main.cpp)
+set(SOURCES main.cpp infra/File.cpp)
 
-add_executable(agent ${SOURCES})
+set(APP_NAME agent)
 
-# Optionally, specify include directories
-# include_directories(${INCLUDE_DIRECTORIES})
+add_executable(${APP_NAME} ${SOURCES})
 
-# Optionally, link additional libraries
-# target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
+target_include_directories(${APP_NAME} PRIVATE ${SPD_LOG_INCLUDE_DIRECTORY} ${COMMON_INCLUDE_DIRECTORY})
+
+target_link_libraries(${APP_NAME} spdlog::spdlog)
