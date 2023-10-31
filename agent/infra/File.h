@@ -1,8 +1,10 @@
-#ifndef __FILE_H
-#define __FILE_H
+#pragma once
 
 #include "FileInterface.h"
 #include <string>
+
+namespace infra
+{
 
 class File : public FileInterface
 {
@@ -22,4 +24,4 @@ private:
     int mFd;
 };
 
-#endif
+}

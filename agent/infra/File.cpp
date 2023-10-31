@@ -2,10 +2,13 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include "spdlog/spdlog.h"
 
 static constexpr int LINUX_SYSCALL_ERROR  = -1;
+
+using namespace infra;
 
 File::File(std::string filePath)
 {
@@ -22,7 +25,7 @@ File::~File()
 
 File::FileStatus File::Open()
 {
-    auto openResult = open(mFilePath.c_str(), 0);
+    auto openResult = open(mFilePath.c_str(), O_RDWR | S_IRUSR | S_IWUSR);
     if (LINUX_SYSCALL_ERROR == openResult)
     {
         spdlog::error("Failed to open file {}", mFilePath);
@@ -30,7 +33,6 @@ File::FileStatus File::Open()
     }
 
     mFd = openResult;
-
     return File::FileStatus::Success;
 }
 
@@ -53,7 +55,7 @@ File::FileStatus File::Read(File::BufferRefType buffer, uint32_t &bytesRead)
     auto readResult = read(mFd, buffer.data(), buffer.size());
     if (LINUX_SYSCALL_ERROR == readResult)
     {
-        spdlog::error("Failed to read file {}", mFilePath);
+        spdlog::error("Failed to read file [{}] - [{}]", mFilePath, strerror(errno));
         return File::FileStatus::Failed;
     }
 
@@ -67,7 +69,7 @@ File::FileStatus File::Write(File::BufferRefType buffer, uint32_t &bytesWritten)
     auto writeResult = write(mFd, buffer.data(), buffer.size());
     if (LINUX_SYSCALL_ERROR == writeResult)
     {
-        spdlog::error("Failed to write file {}", mFilePath);
+        spdlog::error("Failed to write file [{}] - [{}]", mFilePath, strerror(errno));
         return File::FileStatus::Failed;
     }
 

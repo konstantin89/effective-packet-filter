@@ -6,6 +6,9 @@
 
 #include <vector>
 
+namespace infra
+{
+
 class FileInterface
 {
 public:
@@ -36,4 +39,5 @@ public:
     FileInterface& operator=(const FileInterface&) = delete;
 };
 
+}
 #endif
