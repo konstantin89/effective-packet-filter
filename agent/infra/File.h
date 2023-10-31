@@ -20,7 +20,6 @@ public:
 private:
     std::string mFilePath;
     int mFd;
-    bool isFileOpened;
 };
 
 #endif
