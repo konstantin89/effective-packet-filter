@@ -2,11 +2,9 @@
 #define __CHAR_DEVICE_H
 
 #include <linux/types.h>
-#include <linux/fs.h>
-#include <linux/poll.h>
-#include <linux/device.h>
-
 #include "utils/Status.h"
+
+#include "CharDeviceOps.h"
 
 /** 
  * @brief: Create character device under give device class with given character device name.
@@ -14,21 +12,6 @@
 */
 
 #define MAX_DEVICE_NAME_LEN 64
-
-typedef ssize_t (*ReadCdevCallbackType)(struct file *filp, char __user *buff, size_t count, loff_t *f_pos);
-typedef ssize_t (*WriteCdevCallbackType)(struct file *filp, const char __user *buff, size_t count, loff_t *f_pos);
-typedef int (*OpenCdevCallbackType)(struct inode *inode, struct file *filp);
-typedef int (*ReleaseCdevCallbackType)(struct inode *inode, struct file *flip);
-typedef unsigned int (*PollCdevCallbackType)(struct file *filp, poll_table *wait);
-
-typedef struct CharDeviceOps
-{
-    ReadCdevCallbackType read;
-    WriteCdevCallbackType write;
-    OpenCdevCallbackType open;
-    ReleaseCdevCallbackType release;
-    PollCdevCallbackType poll;
-} CharDeviceOps;
 
 struct CharDevicePrivateFields;
 typedef struct CharDevice CharDevice;
@@ -39,7 +22,6 @@ struct CharDevice
 
     STATUS_CODE (*Open)(CharDevice *instance);
     STATUS_CODE (*Close)(CharDevice *instance);
-
 };
 
 /**
