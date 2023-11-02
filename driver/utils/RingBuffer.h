@@ -10,7 +10,7 @@ typedef struct RingBuffer
     struct RingBufferPrivateFields *privateFields;
 
     int (*Write)(struct RingBuffer* instance, const void* dataToWrite, int bufLen);
-    int (*Read)(struct RingBuffer* instance, char __user *outBuffer, int bufLen);
+    int (*ReadByUser)(struct RingBuffer* instance, char __user *outBuffer, int bufLen);
     bool (*IsEmpty)(struct RingBuffer* instance);
     bool (*IsFull)(struct RingBuffer* instance);
 
