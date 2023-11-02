@@ -38,6 +38,11 @@ static unsigned int LocalOutHookIpv4Callback(void *priv, struct sk_buff *skb, co
         return NF_ACCEPT;
     }
 
+    if (ipv4Header->protocol == IPPROTO_UDP)
+    {
+        // This is packet we want to upload!
+    }
+
     return NF_ACCEPT; // Continue packet processing.
 }
 

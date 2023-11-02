@@ -21,7 +21,7 @@ enum CharDevType
 };
 #undef CHAR_DEV_ENTRY
 
-STATUS_CODE CharDevicesManager_Create(struct class *deviceClass);
+STATUS_CODE CharDevicesManager_Init(struct class *deviceClass);
 
 STATUS_CODE CharDevicesManager_OpenCharDevs(void);
 STATUS_CODE CharDevicesManager_CloseCharDevs(void);

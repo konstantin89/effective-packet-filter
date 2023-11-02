@@ -1,6 +1,6 @@
 obj-m += filter_module.o
 
-UTILS_FILES = utils/Status.o
+UTILS_FILES = utils/Status.o utils/RingBuffer.o
 HOOKS_FILES = hooks/HooksManager.o
 CHAR_DEVICE_FILES = char_devices/CharDevice.o char_devices/CharDevicesManager.o
 
