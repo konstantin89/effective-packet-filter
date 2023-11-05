@@ -16,7 +16,7 @@ typedef struct RingBuffer
 
 } RingBuffer;
 
-RingBuffer * RingBuffer_Create(unsigned int entrySize, unsigned int numOfEntries);
+RingBuffer *RingBuffer_Create(unsigned int entrySize, unsigned int numOfEntries);
 void RingBuffer_Destroy(struct RingBuffer* instance);
 
 #endif

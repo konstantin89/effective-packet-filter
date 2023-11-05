@@ -57,7 +57,7 @@ static unsigned int UsedEntriesCount(struct RingBufferPrivateFields *privateFiel
     return (privateFields->bufferSize / privateFields->entrySize) - FreeEntriesCount(privateFields);
 } 
 
-RingBuffer * RingBuffer_Create(unsigned int entrySize, unsigned int numOfEntries)
+RingBuffer *RingBuffer_Create(unsigned int entrySize, unsigned int numOfEntries)
 {
     RingBuffer *instance = Alloc();
     if (NULL == instance)
@@ -128,6 +128,11 @@ int ReadByUser(struct RingBuffer* instance, char __user *outBuffer, int bufLen)
 
     privateFields = instance->privateFields;
 
+    if (NULL == outBuffer)
+    {
+        return IsEmpty(instance) ? 0 : privateFields->entrySize;
+    }
+
     unsigned int entriesAvailable = UsedEntriesCount(privateFields);
     unsigned int entriesToRead = bufLen / privateFields->entrySize;
 
@@ -136,7 +141,7 @@ int ReadByUser(struct RingBuffer* instance, char __user *outBuffer, int bufLen)
     for(i=0; i<entriesToRead; i++)
     {
          copyToUserReturn = copy_to_user(outBuffer + (i*privateFields->entrySize),
-                                         privateFields->readPos,
+                                         privateFields->buffer + privateFields->readPos,
                                          privateFields->entrySize);
 
         if (copyToUserReturn != privateFields->entrySize)
@@ -206,7 +211,7 @@ static void Free(RingBuffer *instance)
 static STATUS_CODE Constructor(RingBuffer *instance, unsigned int entrySize, unsigned int numOfEntries)
 {
     ASSERT(NULL != instance);
-    ASSERT(NULL != instance->privateFields)
+    ASSERT(NULL != instance->privateFields);
 
     memset(instance->privateFields, 0, sizeof(struct RingBufferPrivateFields));
 
@@ -216,6 +221,10 @@ static STATUS_CODE Constructor(RingBuffer *instance, unsigned int entrySize, uns
     instance->IsFull = IsFull;
 
     instance->privateFields->bufferSize = entrySize*numOfEntries;
+    instance->privateFields->entrySize = entrySize;
+    instance->privateFields->readPos = 0;
+    instance->privateFields->writePos = 0;
+    spin_lock_init(&instance->privateFields->lock);
 
     instance->privateFields->buffer = kmalloc(instance->privateFields->bufferSize, GFP_KERNEL);
     if(NULL == instance->privateFields->buffer)
@@ -223,10 +232,6 @@ static STATUS_CODE Constructor(RingBuffer *instance, unsigned int entrySize, uns
         LOG_ERROR("Failed to allocate[%d] bytes for ring buffer \n", instance->privateFields->bufferSize);
         return STATUS_CODE_MEMORY_ERROR;
     }
-
-    instance->privateFields->entrySize = entrySize;
-
-    spin_lock_init(&instance->privateFields->lock);
 
     return STATUS_CODE_SUCCESS;
 }

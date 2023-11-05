@@ -7,7 +7,7 @@
 ## Usefull commands
 ``` bash
 # DNS query
-dig yahoo.com
+dig @8.8.8.8 example.com
 ```
 
 ```bash

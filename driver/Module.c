@@ -6,13 +6,17 @@
 
 #include "utils/Logger.h"
 #include "utils/Assert.h"
+#include "utils/RingBuffer.h"
 #include "hooks/HooksManager.h"
 #include "DeviceClassManager.h"
 #include "char_devices/CharDevicesManager.h"
+#include "common/PacketMessage.h"
 
 MODULE_AUTHOR("konstantin89");
 MODULE_DESCRIPTION("");
 MODULE_LICENSE("GPL");
+
+static RingBuffer *g_packetsRingBuffer = NULL;
 
 static int __init init(void)
 {
@@ -27,23 +31,29 @@ static int __init init(void)
         return 1;
     }
 
-    if (STATUS_CODE_SUCCESS != HooksManager_SetHooks())
-    {
-        LOG_ERROR("HooksManager_SetHooks failed \n");
-        return 1;
-    }
-
     deviceClass = DeviceClassManager_GetClass();
 
-    if (STATUS_CODE_SUCCESS != CharDevicesManager_Init(deviceClass))
+    g_packetsRingBuffer = RingBuffer_Create(sizeof(PacketMessage), 20);
+    if (NULL == g_packetsRingBuffer)
     {
-        LOG_ERROR("CharDevicesManager_Init failed \n");
+        LOG_ERROR("RingBuffer_Create failed \n");
         return 1;
     }
 
     if (STATUS_CODE_SUCCESS != CharDevicesManager_OpenCharDevs())
     {
         LOG_ERROR("CharDevicesManager_OpenCharDevs failed \n");
+        return 1;
+    }
+    if (STATUS_CODE_SUCCESS != CharDevicesManager_Init(deviceClass))
+    {
+        LOG_ERROR("CharDevicesManager_Init failed \n");
+        return 1;
+    }
+
+    if (STATUS_CODE_SUCCESS != HooksManager_SetHooks(g_packetsRingBuffer))
+    {
+        LOG_ERROR("HooksManager_SetHooks failed \n");
         return 1;
     }
 
@@ -61,6 +71,8 @@ static void __exit cleanup(void)
     CharDevicesManager_Teardown();
 
     DeviceClassManager_Teardown();
+
+    RingBuffer_Destroy(g_packetsRingBuffer);
 }
 
 module_init(init);
@@ -78,7 +90,16 @@ struct CharDeviceOps g_packetCharDevOps =
 ssize_t PacketCharDevRead(struct file *filp, char __user *buff, size_t count, loff_t *f_pos)
 {
     LOG_DEBUG("Packets char dev - read called \n");
-    return 0;
+
+    if (NULL == g_packetsRingBuffer)
+    {
+        LOG_ERROR("gTestRingBuffer is NULL");
+    }
+
+    ssize_t bytesRead = g_packetsRingBuffer->ReadByUser(g_packetsRingBuffer, buff, count);
+    *f_pos += bytesRead;
+
+    return bytesRead;
 }
 
 ssize_t PacketCharDevWrite(struct file *filp, const char __user *buff, size_t count, loff_t *f_pos)

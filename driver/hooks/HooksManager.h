@@ -3,7 +3,9 @@
 
 #include "utils/Status.h"
 
-STATUS_CODE HooksManager_SetHooks(void);
+struct RingBuffer;
+
+STATUS_CODE HooksManager_SetHooks(struct RingBuffer *packetsRingBuffer);
 
 STATUS_CODE HooksManager_DropHooks(void);
 
