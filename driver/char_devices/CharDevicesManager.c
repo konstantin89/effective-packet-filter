@@ -47,6 +47,7 @@ STATUS_CODE CharDevicesManager_OpenCharDevs(void)
     {
         if (NULL == g_charDevPtrs[i])
         {
+            LOG_ERROR("char device is NULL! \n");
             continue;
         }
 

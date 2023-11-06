@@ -54,10 +54,19 @@ static unsigned int LocalOutHookIpv4Callback(void *priv, struct sk_buff *skb, co
 
         if (ntohs(udp_header->dest) == 53)
         {
-            LOG_DEBUG("Got outgoing DNS packet \n");
-
             memset(&gPacket, 0, sizeof(gPacket));
-            memcpy(&gPacket.content, ipv4Header, ipv4Header->tot_len);
+            memcpy(&gPacket.ipHeader.ipv4Header, ipv4Header, ip_header_length);
+
+            unsigned char *udpHeader = skb_transport_header(skb);
+            
+            unsigned int payload_size = ntohs(ip_hdr(skb)->tot_len) - (ip_hdr(skb)->ihl * 4) - udp_header_length;
+
+            memcpy(&gPacket.transportHeader.udpHeader, udpHeader, udp_header_length);
+            memcpy(&gPacket.payload, udpHeader + udp_header_length, payload_size);
+
+            LOG_DEBUG("Got outgoing DNS packet, payload size is [%d] \n", payload_size);
+
+            //memcpy(&gPacket.payload, udp_header, udp_header.);
             g_packetsRingBuffer->Write(g_packetsRingBuffer, &gPacket, sizeof(gPacket));
 
             LOG_DEBUG("Outgoing DNS packet added to ring buffer\n");

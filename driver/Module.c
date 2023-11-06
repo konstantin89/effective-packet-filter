@@ -33,6 +33,12 @@ static int __init init(void)
 
     deviceClass = DeviceClassManager_GetClass();
 
+    if (STATUS_CODE_SUCCESS != CharDevicesManager_Init(deviceClass))
+    {
+        LOG_ERROR("CharDevicesManager_Init failed \n");
+        return 1;
+    }
+
     g_packetsRingBuffer = RingBuffer_Create(sizeof(PacketMessage), 20);
     if (NULL == g_packetsRingBuffer)
     {
@@ -40,16 +46,13 @@ static int __init init(void)
         return 1;
     }
 
+
     if (STATUS_CODE_SUCCESS != CharDevicesManager_OpenCharDevs())
     {
         LOG_ERROR("CharDevicesManager_OpenCharDevs failed \n");
         return 1;
     }
-    if (STATUS_CODE_SUCCESS != CharDevicesManager_Init(deviceClass))
-    {
-        LOG_ERROR("CharDevicesManager_Init failed \n");
-        return 1;
-    }
+
 
     if (STATUS_CODE_SUCCESS != HooksManager_SetHooks(g_packetsRingBuffer))
     {

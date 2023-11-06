@@ -1,11 +1,13 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
-
-#include "common/Version.h"
 #include "spdlog/spdlog.h"
+#include <arpa/inet.h> //ntohs
 
 #include "infra/File.h"
+#include "common/Version.h"
+#include "common/PacketMessage.h"
+
 
 void testCharDev()
 {
@@ -20,11 +22,21 @@ void testCharDev()
 
     while(1)
     {
-        infra::FileInterface::BufferType buffer(10);
+        infra::FileInterface::BufferType buffer(sizeof(struct PacketMessage));
         uint32_t bytesRead = 0;
         f.Read(buffer, bytesRead);
 
         std::cout << "Bytes read: " << bytesRead  << std::endl;
+
+        if (bytesRead > 0)
+        {
+            struct PacketMessage *packetMessage = (struct PacketMessage *)buffer.data();
+            std::cout << "IP version " << (int)(packetMessage->ipHeader.ipv4Header.version)  << std::endl;
+
+            struct udphdr *udp_header = (struct udphdr *)&packetMessage->transportHeader.udpHeader;
+            std::cout << "Dest Port " << ntohs(udp_header->dest)  << std::endl;
+
+        }
 
         std::this_thread::sleep_for(std::chrono::seconds(5));
     }

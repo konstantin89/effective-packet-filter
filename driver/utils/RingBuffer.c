@@ -133,6 +133,8 @@ int ReadByUser(struct RingBuffer* instance, char __user *outBuffer, int bufLen)
         return IsEmpty(instance) ? 0 : privateFields->entrySize;
     }
 
+    spin_lock(&privateFields->lock);
+
     unsigned int entriesAvailable = UsedEntriesCount(privateFields);
     unsigned int entriesToRead = bufLen / privateFields->entrySize;
 
