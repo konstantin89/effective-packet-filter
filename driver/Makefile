@@ -3,8 +3,9 @@ obj-m += filter_module.o
 UTILS_FILES = utils/Status.o utils/RingBuffer.o
 HOOKS_FILES = hooks/HooksManager.o
 CHAR_DEVICE_FILES = char_devices/CharDevice.o char_devices/CharDevicesManager.o
+NETWORK_FILES = network/NetworkUtils.o
 
-filter_module-objs := Module.o DeviceClassManager.o $(UTILS_FILES) $(HOOKS_FILES) $(CHAR_DEVICE_FILES)
+filter_module-objs := Module.o DeviceClassManager.o $(UTILS_FILES) $(HOOKS_FILES) $(CHAR_DEVICE_FILES) $(NETWORK_FILES)
 
 EXTRA_CFLAGS += -I$(PWD) -I$(PWD)/../
 

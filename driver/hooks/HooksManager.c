@@ -4,6 +4,8 @@
 #include "utils/RingBuffer.h"
 #include "utils/Assert.h"
 
+#include "network/NetworkUtils.h"
+
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
 #include <linux/kernel.h>
@@ -19,60 +21,51 @@ static struct nf_hook_ops *g_localOutHookIpv4 = NULL;
 
 static PacketMessage gPacket;
 
-struct iphdr *extract_ipv4_header(struct sk_buff *skb) 
-{
-    struct iphdr *ip_header;
 
-    // Check if skb contains an IPv4 header
-    if (skb->protocol == htons(ETH_P_IP)) 
-    {
-        // Extract IPv4 header
-        ip_header = ip_hdr(skb);
-
-        return ip_header;
-    }
-
-    return NULL;  // Not an IPv4 packet
-}
 
 static unsigned int LocalOutHookIpv4Callback(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 {
-    struct iphdr *ipv4Header = extract_ipv4_header(skb);
+    struct udphdr *udpHeader = NULL;
+
+    struct iphdr *ipv4Header = NetworkUtils_GetIpv4Header(skb);
+    unsigned int payloadSize = 0;
+
     if (NULL == ipv4Header)
     {
-        LOG_ERROR("Failed to extract IPv4 header from sk_buff \n");
-        return NF_ACCEPT;
+        goto exit;
     }
 
     if (ipv4Header->protocol == IPPROTO_UDP)
     {
         LOG_DEBUG("Got UDP packet \n");
 
-        int ip_header_length = ipv4Header->ihl * 4;
-        int udp_header_length = sizeof(struct udphdr);
-        struct udphdr *udp_header = (struct udphdr *)((char *)ipv4Header + ip_header_length);
 
-        if (ntohs(udp_header->dest) == 53)
+        udpHeader = (struct udphdr *)NetworkUtils_GetTransportHeader(skb);
+        if (NULL == udpHeader)
+        {
+            goto exit;
+        }
+
+        if (ntohs(udpHeader->dest) == 53)
         {
             memset(&gPacket, 0, sizeof(gPacket));
-            memcpy(&gPacket.ipHeader.ipv4Header, ipv4Header, ip_header_length);
 
-            unsigned char *udpHeader = skb_transport_header(skb);
+            memcpy(&gPacket.ipHeader.ipv4Header, ipv4Header, IPV4_HEADER_LENGTH(ipv4Header));
             
-            unsigned int payload_size = ntohs(ip_hdr(skb)->tot_len) - (ip_hdr(skb)->ihl * 4) - udp_header_length;
+            payloadSize = ntohs(ipv4Header->tot_len) - IPV4_HEADER_LENGTH(ipv4Header) - UDP_HEADER_LENGTH;
 
-            memcpy(&gPacket.transportHeader.udpHeader, udpHeader, udp_header_length);
-            memcpy(&gPacket.payload, udpHeader + udp_header_length, payload_size);
+            memcpy(&gPacket.transportHeader.udpHeader, udpHeader, UDP_HEADER_LENGTH);
+            memcpy(&gPacket.payload, udpHeader + UDP_HEADER_LENGTH, payloadSize);
 
-            LOG_DEBUG("Got outgoing DNS packet, payload size is [%d] \n", payload_size);
+            LOG_DEBUG("Got outgoing DNS packet, payload size is [%d] \n", payloadSize);
 
-            //memcpy(&gPacket.payload, udp_header, udp_header.);
             g_packetsRingBuffer->Write(g_packetsRingBuffer, &gPacket, sizeof(gPacket));
 
             LOG_DEBUG("Outgoing DNS packet added to ring buffer\n");
         }
     }
 
+exit:
     return NF_ACCEPT; // Continue packet processing.
 }
 
@@ -93,7 +86,6 @@ STATUS_CODE HooksManager_SetHooks(struct RingBuffer *packetsRingBuffer)
     g_localOutHookIpv4->hooknum      = NF_INET_LOCAL_OUT;       /* received packets */
     g_localOutHookIpv4->pf           = PF_INET;              /* ARP protocol */
     g_localOutHookIpv4->priority     = NF_IP_PRI_FIRST;              /* priority */
-    //g_localOutHookIpv4->dev = dev;
 
     nf_register_net_hook(&init_net, g_localOutHookIpv4);
 
